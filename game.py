@@ -1,7 +1,8 @@
 #! dj-snake
 
 from graphics import *
-from random import choice, random
+from random import choice
+import threading
 
 TILE_SIZE = 20                                              # length of a tile in pixels
 BOARD_LENGTH = 40                                           # number of tiles to a side of the entire board
@@ -13,6 +14,68 @@ STARTING_POINT = (BOARD_LENGTH // 2, BOARD_LENGTH // 2)     # initial position o
 directions = [
     'up', 'down', 'left', 'right'
 ]
+
+class Block:
+    coordinates = None
+    rectangle = None
+
+    def __init__(self, x, y, window):
+        self.coordinates = (x,y)
+
+        self.rectangle = Rectangle(
+            Point(x * TILE_SIZE, y * TILE_SIZE), 
+            Point((x+1) * TILE_SIZE, (y+1) * TILE_SIZE)
+        )
+
+        self.rectangle.setFill(SNAKE_COLOR)
+        self.rectangle.setOutline(BACKGROUND_COLOR)
+        self.rectangle.draw(window)
+    
+    def destroy(self):
+        self.rectangle.undraw()
+        return self.rectangle
+
+class Snake:
+    window = None
+    direction = None
+    length = None
+    blocks = []
+    
+    def __init__(self, window):
+        self.window = window
+        self.direction = choice(directions)
+        self.length = INITIAL_SNAKE_LENGTH
+
+        head = STARTING_POINT
+
+        if self.direction == 'up':
+            for offset in range(INITIAL_SNAKE_LENGTH):
+                self.blocks.append(Block(head[0], head[1] - offset, self.window))
+        elif self.direction == 'down':
+            for offset in range(INITIAL_SNAKE_LENGTH):
+                self.blocks.append(Block(head[0], head[1] + offset, self.window))
+        elif self.direction == 'right':
+            for offset in range(INITIAL_SNAKE_LENGTH):
+                self.blocks.append(Block(head[0] - offset, head[1], self.window))
+        elif self.direction == 'left':
+            for offset in range(INITIAL_SNAKE_LENGTH):
+                self.blocks.append(Block(head[0] + offset, head[1], self.window))
+    
+    def update(self):
+        head = self.blocks[0].coordinates
+
+        if self.direction == 'up':
+            self.blocks.insert(0, Block(head[0], head[1] - 1, self.window))
+        elif self.direction == 'down':
+            self.blocks.insert(0, Block(head[0], head[1] + 1, self.window))
+        elif self.direction == 'right':
+            self.blocks.insert(0, Block(head[0] - 1, head[1], self.window))
+        elif self.direction == 'left':
+            self.blocks.insert(0, Block(head[0] + 1, head[1], self.window))
+
+        self.blocks[-1].destroy()
+        self.blocks.pop()
+
 
 def initializeWindow():
     window = GraphWin(
@@ -28,47 +91,14 @@ def initializeWindow():
 
     return window
 
-def initializeSnake():
-    initialDirection = choice(directions)
-    head = STARTING_POINT
-    snakeBlocks = []
-
-    if initialDirection == 'up':
-        for offset in range(INITIAL_SNAKE_LENGTH):
-            snakeBlocks.append((head[0], head[1] - offset))
-    elif initialDirection == 'down':
-        for offset in range(INITIAL_SNAKE_LENGTH):
-            snakeBlocks.append((head[0], head[1] + offset))
-    elif initialDirection == 'right':
-        for offset in range(INITIAL_SNAKE_LENGTH):
-            snakeBlocks.append((head[0] - offset, head[1]))
-    elif initialDirection == 'left':
-        for offset in range(INITIAL_SNAKE_LENGTH):
-            snakeBlocks.append((head[0] + offset, head[1]))
-
-    return snakeBlocks
-
-def drawBlock(x, y, window):
-    block = Rectangle(
-        Point(x * TILE_SIZE, y * TILE_SIZE), 
-        Point((x+1) * TILE_SIZE, (y+1) * TILE_SIZE)
-    )
-    block.draw(window)
-    block.setFill(SNAKE_COLOR)
-
-def drawSnake(snakeBlocks, window):
-    for block in snakeBlocks:
-        drawBlock(block[0], block[1], window)
-
 
 def play():
     window = initializeWindow()
-    snakeBlocks = initializeSnake()
-    drawSnake(snakeBlocks, window)
+    snake = Snake(window)
+    
 
     
     window.getMouse()
-
 
 
 
