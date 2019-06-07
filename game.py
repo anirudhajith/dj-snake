@@ -1,19 +1,18 @@
 #! dj-snake
 
-from graphics import *
-from random import choice
-import threading
-from time import sleep
-
-
+from graphics import GraphWin, Rectangle, Point, color_rgb
+from random import choice, randint
+import time
 
 TILE_SIZE = 20                                              # length of a tile in pixels
 BOARD_LENGTH = 40                                           # number of tiles to a side of the entire board
 BACKGROUND_COLOR = color_rgb(128,128,200)                   # board background color
 SNAKE_COLOR = color_rgb(255,255,255)                        # snake body color
-INITIAL_SNAKE_LENGTH = 10                                   # snake body length at the start of the game
+FOOD_COLOR = color_rgb(255,0,0)                             # food color
+INITIAL_SNAKE_LENGTH = 3                                    # snake body length at the start of the game
 STARTING_POINT = (BOARD_LENGTH // 2, BOARD_LENGTH // 2)     # initial position of snake head
 UPDATE_INTERVAL = 0.125                                     # time interval between consecutive steps
+
 
 directions = [
     'Up', 'Down', 'Left', 'Right'
@@ -23,7 +22,7 @@ class Block:
     coordinates = None
     rectangle = None
 
-    def __init__(self, x, y, window):
+    def __init__(self, x, y, window, fill=SNAKE_COLOR):
         self.coordinates = (x,y)
 
         self.rectangle = Rectangle(
@@ -31,7 +30,7 @@ class Block:
             Point((x+1) * TILE_SIZE, (y+1) * TILE_SIZE)
         )
 
-        self.rectangle.setFill(SNAKE_COLOR)
+        self.rectangle.setFill(fill)
         self.rectangle.setOutline(BACKGROUND_COLOR)
         self.rectangle.draw(window)
     
@@ -44,6 +43,7 @@ class Snake:
     direction = None
     length = None
     blocks = []
+    growStep = False
     
     def __init__(self, window):
         self.window = window
@@ -75,6 +75,9 @@ class Snake:
                 self.direction = direction
             elif self.direction == 'Right' and direction != 'Left':
                 self.direction = direction
+    
+    def grow(self):
+        self.growStep = True
         
     def update(self):
         head = self.blocks[0].coordinates
@@ -89,44 +92,69 @@ class Snake:
             self.blocks.insert(0, Block(head[0] - 1, head[1], self.window))
 
         self.blocks[-1].destroy()
-        self.blocks.pop()
+        if not self.growStep:
+            self.blocks.pop()
+        else:
+            self.length += 1
+            self.growStep = False
 
+class Game:
+    window = None
+    snake = None
+    food = None
 
-def initializeWindow():
-    window = GraphWin(
-        title = "dj-snake", 
-        width = TILE_SIZE * BOARD_LENGTH, 
-        height = TILE_SIZE * BOARD_LENGTH,
-    )
-    window.setBackground(BACKGROUND_COLOR)
+    def __init__(self):
+        self.window = GraphWin(
+            title = "dj-snake", 
+            width = TILE_SIZE * BOARD_LENGTH, 
+            height = TILE_SIZE * BOARD_LENGTH,
+        )
+        self.window.setBackground(BACKGROUND_COLOR)
 
-    for x in range(1, BOARD_LENGTH):
-        for y in range(1, BOARD_LENGTH):
-            window.plotPixel(x * TILE_SIZE, y * TILE_SIZE, SNAKE_COLOR)
+        for x in range(1, BOARD_LENGTH):
+            for y in range(1, BOARD_LENGTH):
+                self.window.plotPixel(x * TILE_SIZE, y * TILE_SIZE, SNAKE_COLOR)
+        
+        self.snake = Snake(self.window)
+        self.spawnFood()
+    
+    def spawnFood(self):
+        x, y = randint(0, BOARD_LENGTH - 1), randint(0, BOARD_LENGTH - 1)
+        while any(block.coordinates == (x,y) for block in self.snake.blocks):
+            x, y = randint(0, BOARD_LENGTH), randint(0, BOARD_LENGTH)
+        
+        self.food = Block(x, y, self.window, FOOD_COLOR)
+    
+    def checkIllegal(self):
+        headCoordinates = self.snake.blocks[0].coordinates
+        if any(headCoordinates == block.coordinates for block in self.snake.blocks[1:]):
+            return True
+        elif any(x < 0 or x >= BOARD_LENGTH for x in headCoordinates):
+            return True
+        
+        return False
+        
+    def play(self):
+        while True:
+            time.sleep(UPDATE_INTERVAL)
+            self.snake.changeDirection(self.window.checkKey())
 
-    return window
+            if self.snake.blocks[0].coordinates == self.food.coordinates:
+                self.snake.grow()
+                self.food.destroy()
+                self.spawnFood()
+            
+            if not self.checkIllegal():
+                self.snake.update()
+            else:
+                break
 
 
 def main():
-    window = initializeWindow()
-    snake = Snake(window)
-    play(snake)
-    window.getMouse()
+    game = Game()
+    game.play()
+    game.window.getMouse()
     
-def play(snake):
-    window = snake.window
-    while True:
-        time.sleep(UPDATE_INTERVAL)
-        snake.changeDirection(window.checkKey())
-        snake.update()
-
-
-    
-    
-
-
-
-
 
 
 
