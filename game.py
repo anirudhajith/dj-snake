@@ -146,9 +146,85 @@ class Game:
             
             if not self.checkIllegal():
                 self.snake.update()
+                self.getEnvironmentParams()
             else:
                 break
+    
+    def getEnvironmentParams(self):
 
+        # return information about left, fleft, front, fright and right
+        # 3 possible things detected: wall, snake, food
+        # ie 5 parameters in total
+
+        delta = dict()
+
+        if self.snake.direction == 'Up':
+            delta["front"] = (0, -1)
+            delta["left"] = (-1, 0)
+            delta["right"] = (1, 0)
+            delta["fleft"] = (-1, -1)
+            delta["fright"] = (1, -1)
+        elif self.snake.direction == 'Down':
+            delta["front"] = (0, 1)
+            delta["left"] = (1, 0)
+            delta["right"] = (-1, 0)
+            delta["fleft"] = (1, 1)
+            delta["fright"] = (-1, 1)
+        elif self.snake.direction == 'Right':
+            delta["front"] = (1, 0)
+            delta["left"] = (0, -1)
+            delta["right"] = (0, 1)
+            delta["fleft"] = (1, -1)
+            delta["fright"] = (1, 1)
+        elif self.snake.direction == 'Left':
+            delta["front"] = (-1, 0)
+            delta["left"] = (0, 1)
+            delta["right"] = (0, -1)
+            delta["fleft"] = (-1, 1)
+            delta["fright"] = (-1, -1)
+
+        sight = {
+            "front": "wall",
+            "left": "wall",
+            "right": "wall",
+            "fleft": "wall",
+            "fright": "wall"
+        }
+
+        for direction, step in delta.items():
+            scanner = self.snake.blocks[0].coordinates
+
+            while scanner[0] >= 0 and scanner[0] <= BOARD_LENGTH and scanner[1] >= 0 and scanner[1] <= BOARD_LENGTH:
+                scanner = (scanner[0] + step[0], scanner[1] + step[1])
+                
+                if scanner == self.food.coordinates:
+                    sight[direction] = 'food'
+                    break
+                elif scanner in [b.coordinates for b in self.snake.blocks]:
+                    sight[direction] = 'snake'
+                    break
+            
+        params = (
+            1 if sight["left"] == "wall" else 0,
+            1 if sight["fleft"] == "wall" else 0,
+            1 if sight["front"] == "wall" else 0,
+            1 if sight["fright"] == "wall" else 0,
+            1 if sight["right"] == "wall" else 0,
+            1 if sight["left"] == "snake" else 0,
+            1 if sight["fleft"] == "snake" else 0,
+            1 if sight["front"] == "snake" else 0,
+            1 if sight["fright"] == "snake" else 0,
+            1 if sight["right"] == "snake" else 0,
+            1 if sight["left"] == "food" else 0,
+            1 if sight["fleft"] == "food" else 0,
+            1 if sight["front"] == "food" else 0,
+            1 if sight["fright"] == "food" else 0,
+            1 if sight["right"] == "food" else 0
+        )
+
+        print(params)
+        return params
+                
 
 def main():
     game = Game()
